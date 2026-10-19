@@ -56,9 +56,15 @@
     // Theme popup. Each name includes "Theme" so the popup needs no label.
     NSPopUpButton *themePopup = popup(@[NSLocalizedString(@"System Theme", @"System theme name"),
                                         NSLocalizedString(@"Light Theme", @"Light theme name"),
-                                        NSLocalizedString(@"Dark Theme", @"Dark theme name")],
-                                      @[@(ThemePreferenceSystem), @(ThemePreferenceLight), @(ThemePreferenceDark)],
+                                        NSLocalizedString(@"Dark Theme", @"Dark theme name"),
+                                        NSLocalizedString(@"Catppuccin Theme", @"Catppuccin theme name (Latte in Light Mode, Mocha in Dark Mode)"),
+                                        NSLocalizedString(@"Catppuccin Latte", @"Catppuccin Latte (light) theme name"),
+                                        NSLocalizedString(@"Catppuccin Mocha", @"Catppuccin Mocha (dark) theme name")],
+                                      @[@(ThemePreferenceSystem), @(ThemePreferenceLight), @(ThemePreferenceDark),
+                                        @(ThemePreferenceCatppuccin), @(ThemePreferenceCatppuccinLatte), @(ThemePreferenceCatppuccinMocha)],
                                       kThemePreference);
+    // Separate the standard themes from the Catppuccin themes.
+    [themePopup.menu insertItem:[NSMenuItem separatorItem] atIndex:3];
 
     // Size segmented control. Each segment shows "Aa" at the font
     // size it selects. All images are as tall as the large font's

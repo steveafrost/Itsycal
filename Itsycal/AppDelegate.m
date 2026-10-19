@@ -40,7 +40,7 @@
         kShowDayOfWeekInIcon:  @(NO),
         kShowEventDots:        @(YES),
         kUseColoredDots:       @(YES),
-        kThemePreference:      @0, // System=0, Light=1, Dark=2
+        kThemePreference:      @0, // System=0, Light=1, Dark=2, Catppuccin=3, Latte=4, Mocha=5
         kHideIcon:             @(NO),
         kShowLocation:         @(NO),
         kSizePreference:       @0, // Small=0, Medium=1, Large=2
@@ -64,7 +64,7 @@
     
     // Set kThemePreference to system in the unlikely case it's invalid.
     NSInteger themePref = [defaults integerForKey:kThemePreference];
-    if (themePref < ThemePreferenceSystem || themePref > ThemePreferenceDark) {
+    if (themePref < ThemePreferenceSystem || themePref > ThemePreferenceCatppuccinMocha) {
         [defaults setInteger:ThemePreferenceSystem forKey:kThemePreference];
     }
 

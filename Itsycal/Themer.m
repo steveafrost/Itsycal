@@ -20,6 +20,23 @@ static NSColor *LightDarkColor(NSColor *light, NSColor *dark)
     }];
 }
 
+static NSColor *RGB(uint32_t hex)
+{
+    return [NSColor colorWithSRGBRed:((hex >> 16) & 0xFF) / 255.0
+                               green:((hex >> 8) & 0xFF) / 255.0
+                                blue:(hex & 0xFF) / 255.0
+                               alpha:1];
+}
+
+// Recursively mark a view hierarchy for redrawing.
+static void SetNeedsDisplayRecursively(NSView *view)
+{
+    view.needsDisplay = YES;
+    for (NSView *subview in view.subviews) {
+        SetNeedsDisplayRecursively(subview);
+    }
+}
+
 @implementation Themer
 
 Themer *Theme = nil;
@@ -47,30 +64,58 @@ Themer *Theme = nil;
 
 - (void)setThemePreference:(ThemePreference)themePref {
     // Validate themePref before setting ivar.
-    _themePreference = (themePref < 0 || themePref > 2) ? 0 : themePref;
+    _themePreference = (themePref < ThemePreferenceSystem || themePref > ThemePreferenceCatppuccinMocha) ? ThemePreferenceSystem : themePref;
     [self adjustAppAppearanceForThemePreference];
+    // Colors are dynamic and resolve against the theme when drawn.
+    // Switching between themes that share an appearance (e.g. Dark
+    // and Catppuccin Mocha) doesn't trigger a redraw, so force one.
+    for (NSWindow *window in NSApp.windows) {
+        NSView *root = window.contentView.superview ?: window.contentView;
+        if (root) SetNeedsDisplayRecursively(root);
+    }
+}
+
+- (BOOL)isCatppuccin {
+    return _themePreference == ThemePreferenceCatppuccin ||
+           _themePreference == ThemePreferenceCatppuccinLatte ||
+           _themePreference == ThemePreferenceCatppuccinMocha;
+}
+
+// Returns a color that resolves to `standard` with the standard themes
+// and to the Catppuccin Latte or Mocha color with the Catppuccin themes.
+// https://catppuccin.com/palette
+- (NSColor *)standard:(NSColor *)standard latte:(uint32_t)latte mocha:(uint32_t)mocha {
+    NSColor *catppuccin = LightDarkColor(RGB(latte), RGB(mocha));
+    return [NSColor colorWithName:nil dynamicProvider:^NSColor *(NSAppearance *appearance) {
+        return [self isCatppuccin] ? catppuccin : standard;
+    }];
 }
 
 - (void)adjustAppAppearanceForThemePreference {
     switch (_themePreference) {
         case ThemePreferenceSystem:
+        case ThemePreferenceCatppuccin:
             NSApp.appearance = nil;
             break;
         case ThemePreferenceDark:
+        case ThemePreferenceCatppuccinMocha:
             NSApp.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
             break;
         case ThemePreferenceLight:
+        case ThemePreferenceCatppuccinLatte:
         default:
             NSApp.appearance = [NSAppearance appearanceNamed:NSAppearanceNameAqua];
     }
 }
 
 - (NSColor *)agendaDayTextColor {
-    return NSColor.secondaryLabelColor;
+    // Catppuccin: Subtext 0
+    return [self standard:NSColor.secondaryLabelColor latte:0x6c6f85 mocha:0xa6adc8];
 }
 
 - (NSColor *)agendaDividerColor {
-    return NSColor.separatorColor;
+    // Catppuccin: Surface 0
+    return [self standard:NSColor.separatorColor latte:0xccd0da mocha:0x313244];
 }
 
 - (NSColor *)agendaDOWTextColor {
@@ -78,7 +123,8 @@ Themer *Theme = nil;
 }
 
 - (NSColor *)agendaEventDateTextColor {
-    return NSColor.secondaryLabelColor;
+    // Catppuccin: Subtext 0
+    return [self standard:NSColor.secondaryLabelColor latte:0x6c6f85 mocha:0xa6adc8];
 }
 
 - (NSColor *)agendaEventTextColor {
@@ -90,46 +136,56 @@ Themer *Theme = nil;
 }
 
 - (NSColor *)currentMonthOutlineColor {
-    return LightDarkColor(NSColor.labelColor, NSColor.secondaryLabelColor);
+    // Catppuccin: Lavender
+    return [self standard:LightDarkColor(NSColor.labelColor, NSColor.secondaryLabelColor) latte:0x7287fd mocha:0xb4befe];
 }
 
 - (NSColor *)currentMonthTextColor {
-    return NSColor.labelColor;
+    // Catppuccin: Text
+    return [self standard:NSColor.labelColor latte:0x4c4f69 mocha:0xcdd6f4];
 }
 
 - (NSColor *)DOWTextColor {
-    return NSColor.labelColor;
+    // Catppuccin: Text
+    return [self standard:NSColor.labelColor latte:0x4c4f69 mocha:0xcdd6f4];
 }
 
 - (NSColor *)highlightedDOWBackgroundColor {
-    return NSColor.secondarySystemFillColor;
+    // Catppuccin: Mantle
+    return [self standard:NSColor.secondarySystemFillColor latte:0xe6e9ef mocha:0x181825];
 }
 
 - (NSColor *)highlightedDOWTextColor {
-    return NSColor.secondaryLabelColor;
+    // Catppuccin: Subtext 0
+    return [self standard:NSColor.secondaryLabelColor latte:0x6c6f85 mocha:0xa6adc8];
 }
 
 - (NSColor *)hoveredCellColor {
-    return NSColor.tertiaryLabelColor;
+    // Catppuccin: Overlay 0
+    return [self standard:NSColor.tertiaryLabelColor latte:0x9ca0b0 mocha:0x6c7086];
 }
 
 - (NSColor *)mainBackgroundColor {
     // windowBackgroundColor is white in Light Mode. In Dark
     // Mode, use a gray halfway between windowBackgroundColor
     // (0.118) and underPageBackgroundColor (0.157).
-    return LightDarkColor(NSColor.windowBackgroundColor, [NSColor colorWithWhite:0.137 alpha:1]);
+    // Catppuccin: Base
+    return [self standard:LightDarkColor(NSColor.windowBackgroundColor, [NSColor colorWithWhite:0.137 alpha:1]) latte:0xeff1f5 mocha:0x1e1e2e];
 }
 
 - (NSColor *)monthTextColor {
-    return NSColor.labelColor;
+    // Catppuccin: Text
+    return [self standard:NSColor.labelColor latte:0x4c4f69 mocha:0xcdd6f4];
 }
 
 - (NSColor *)noncurrentMonthTextColor {
-    return NSColor.tertiaryLabelColor;
+    // Catppuccin: Overlay 0
+    return [self standard:NSColor.tertiaryLabelColor latte:0x9ca0b0 mocha:0x6c7086];
 }
 
 - (NSColor *)pendingBackgroundColor {
-    return NSColor.secondarySystemFillColor;
+    // Catppuccin: Surface 0
+    return [self standard:NSColor.secondarySystemFillColor latte:0xccd0da mocha:0x313244];
 }
 
 - (NSColor *)resizeHandleBackgroundColor {
@@ -137,7 +193,8 @@ Themer *Theme = nil;
 }
 
 - (NSColor *)resizeHandleForegroundColor {
-    return NSColor.secondaryLabelColor;
+    // Catppuccin: Overlay 1
+    return [self standard:NSColor.secondaryLabelColor latte:0x8c8fa1 mocha:0x7f849c];
 }
 
 - (NSColor *)selectedCellColor {
@@ -145,7 +202,8 @@ Themer *Theme = nil;
 }
 
 - (NSColor *)todayCellColor {
-    return NSColor.systemBlueColor;
+    // Catppuccin: Mauve
+    return [self standard:NSColor.systemBlueColor latte:0x8839ef mocha:0xcba6f7];
 }
 
 - (NSColor *)tooltipBackgroundColor {
@@ -153,7 +211,8 @@ Themer *Theme = nil;
 }
 
 - (NSColor *)weekTextColor {
-    return NSColor.secondaryLabelColor;
+    // Catppuccin: Overlay 1
+    return [self standard:NSColor.secondaryLabelColor latte:0x8c8fa1 mocha:0x7f849c];
 }
 
 @end
